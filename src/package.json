@@ -16,6 +16,8 @@
     "auth0-js": "^9.28.0",
     "expo": "~52.0.28",
     "expo-auth-session": "~6.0.3",
+    "expo-camera": "~16.0.14",
+    "expo-image-manipulator": "~13.0.6",
     "expo-image-picker": "~16.0.5",
     "expo-random": "^14.0.1",
     "expo-secure-store": "^14.0.1",
@@ -24,8 +26,7 @@
     "react": "18.3.1",
     "react-native": "0.76.6",
     "react-native-auth0": "^4.2.0",
-    "react-native-dotenv": "^3.4.11",
-    "expo-camera": "~16.0.14"
+    "react-native-dotenv": "^3.4.11"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
