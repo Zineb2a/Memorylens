@@ -1,84 +1,89 @@
-import React, { useContext, useState } from "react";
-import { View, Text, Button, Alert, TextInput, Image, StyleSheet } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import { storage, db } from "../services/firebaseConfig";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { collection, addDoc } from "firebase/firestore";
+import React, { useContext, useState, useRef, useEffect } from "react";
+import { View, Text, Button, Alert, StyleSheet } from "react-native";
+import { Camera } from "expo-camera";
 import AuthContext from "../context/AuthContext";
 
 export default function AddMemoryScreen({ navigation }) {
-  const { user, token, loading } = useContext(AuthContext);
-  const [label, setLabel] = useState("");
-  const [image, setImage] = useState(null);
+  const { user } = useContext(AuthContext);
+  const [hasPermission, setHasPermission] = useState(null);
+  const [cameraType, setCameraType] = useState(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const cameraRef = useRef(null);
 
-  if (loading) {
-    return <Text style={styles.loadingText}>Loading user...</Text>;
-  }
+  // ✅ Request camera permission when component mounts
+  useEffect(() => {
+    (async () => {
+      try {
+        console.log("Requesting camera permission...");
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        setHasPermission(status === "granted");
 
-  if (!user || !token) {
-    Alert.alert("Authentication Required", "You must be logged in to add a memory.");
-    navigation.navigate("Landing");
-    return null;
-  }
+        // ✅ Ensure Camera object exists before accessing Constants
+        if (Camera?.Constants) {
+          setCameraType(Camera.Constants.Type.back);
+        }
+      } catch (error) {
+        console.error("Error requesting camera permission:", error);
+        setHasPermission(false);
+      }
+    })();
+  }, []);
 
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ Fix deprecated property
-      allowsEditing: true,
-      quality: 0.7,
-    });
-
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImage(result.assets[0].uri);
-    }
+  // ✅ Handle camera ready state
+  const onCameraReady = () => {
+    console.log("Camera is ready!");
+    setIsCameraReady(true);
   };
+
+  // ✅ Debugging: Show logs
+  console.log("Camera permission status:", hasPermission);
+
+  // ✅ Show proper messages based on permission state
+  if (hasPermission === null) {
+    return (
+      <View style={styles.container}>
+        <Text>Requesting camera permission...</Text>
+      </View>
+    );
+  }
+
+  if (hasPermission === false) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Camera access is required</Text>
+        <Button 
+          title="Grant Permission" 
+          onPress={async () => {
+            const { status } = await Camera.requestCameraPermissionsAsync();
+            setHasPermission(status === "granted");
+          }} 
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Add a New Memory</Text>
-      <TextInput
-        placeholder="Label your memory"
-        value={label}
-        onChangeText={setLabel}
-        style={styles.input}
-      />
-      <Button title="Pick an Image" onPress={pickImage} />
-      {image && <Image source={{ uri: image }} style={styles.image} />}
-      <Button title="Save Memory" onPress={() => console.log("Memory Saved!")} />
+      <Text style={styles.title}>Capture Object</Text>
+      {cameraType !== null ? (
+        <>
+          <Camera
+            ref={cameraRef}
+            style={styles.camera}
+            type={cameraType}
+            onCameraReady={onCameraReady}
+          />
+          <Button title="Start Capturing" onPress={() => console.log("Capturing started...")} disabled={!isCameraReady} />
+        </>
+      ) : (
+        <Text>Loading Camera...</Text>
+      )}
     </View>
   );
 }
 
-// ✅ FIX: Add missing styles
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#f8f8f8",
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-  input: {
-    width: "80%",
-    borderWidth: 1,
-    padding: 10,
-    marginVertical: 10,
-    borderRadius: 5,
-    backgroundColor: "#fff",
-  },
-  image: {
-    width: 200,
-    height: 200,
-    marginVertical: 10,
-    borderRadius: 10,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: "gray",
-  },
+  container: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
+  title: { fontSize: 22, fontWeight: "bold", marginBottom: 10 },
+  camera: { width: 300, height: 400, marginBottom: 10 },
 });
