@@ -36,7 +36,7 @@ function MemoriesScreen({ navigation }) {
       });
       setMemories(memoryList);
     } catch (error) {
-      console.error("❌ Error fetching memories:", error);
+      console.error("Error fetching memories:", error);
     } finally {
       setLoading(false);
     }
@@ -54,7 +54,7 @@ function MemoriesScreen({ navigation }) {
             try {
               await deleteDoc(doc(db, `users/${user.uid}/memories/${memoryId}`));
               setMemories((prevMemories) => prevMemories.filter(mem => mem.id !== memoryId));
-              Alert.alert("✅ Success!", "Memory deleted.");
+              Alert.alert("Success!", "Memory deleted.");
             } catch (error) {
               console.error("❌ Error deleting memory:", error);
               Alert.alert("Error", "Failed to delete memory.");
@@ -106,7 +106,7 @@ function MemoriesScreen({ navigation }) {
               {item.note ? <Text style={styles.memoryNote}>{item.note}</Text> : null}
               <Text style={styles.memoryDate}>{item.created_at.toDateString()}</Text>
               
-              {/* 🚀 DELETE BUTTON */}
+              {/*DELETE BUTTON */}
               <TouchableOpacity style={styles.deleteButton} onPress={() => deleteMemory(item.id)}>
                 <Ionicons name="trash" size={20} color="white" />
               </TouchableOpacity>
@@ -118,7 +118,7 @@ function MemoriesScreen({ navigation }) {
   );
 }
 
-// 🎨 **Styles**
+// **Styles**
 const styles = StyleSheet.create({
   container: {
     flex: 1,

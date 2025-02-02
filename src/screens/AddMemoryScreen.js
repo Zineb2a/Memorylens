@@ -2,7 +2,7 @@ import React, { useContext, useState, useRef, useEffect } from "react";
 import { 
   View, Text, TouchableOpacity, Alert, ActivityIndicator, StyleSheet 
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";  // ✅ Import Ionicons for Back Button
+import { Ionicons } from "@expo/vector-icons"; 
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { doc, setDoc, collection } from "firebase/firestore";
 import { auth, db } from "../services/firebaseConfig";
@@ -96,9 +96,9 @@ export default function AddMemoryScreen({ navigation }) {
       const memoryDocRef = doc(collection(db, `users/${user.uid}/memories`));
       await setDoc(memoryDocRef, { label, image_urls: imageUrls, note, created_at: new Date() });
 
-      Alert.alert("✅ Success!", "Memory saved.");
+      Alert.alert("Success!", "Memory saved.");
       
-      // ✅ Ensures proper navigation to Memories Page
+      //Ensures proper navigation to Memories Page
       navigation.navigate("MemoriesScreen");
 
     } catch (error) {
@@ -121,7 +121,7 @@ export default function AddMemoryScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* ✅ BACK BUTTON (Same as MemoriesScreen) */}
+      {/*BACK BUTTON (Same as MemoriesScreen) */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="white" />
       </TouchableOpacity>
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   button: { backgroundColor: "#443469", padding: 17, borderRadius: 8, alignItems: "center", marginTop: 2 },
   text: { color: "white", fontWeight: "bold" },
 
-  // ✅ BACK BUTTON (Same as MemoriesScreen)
+  //BACK BUTTON (Same as MemoriesScreen)
   backButton: {
     position: "absolute",
     top: 50,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#443469",
     padding: 10,
     borderRadius: 50,
-    zIndex: 10, // ✅ Ensures button stays on top
+    zIndex: 10, // Ensures button stays on top
     marginTop: -1
   },
 

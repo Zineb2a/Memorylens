@@ -13,10 +13,10 @@ export const AuthProvider = ({ children }) => {
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        console.log("🔥 Firebase User Logged In:", firebaseUser);
+        console.log("Firebase User Logged In:", firebaseUser);
         setUser(firebaseUser);
       } else {
-        console.error("🚨 No Firebase User Found! Logging Out...");
+        console.error("No Firebase User Found! Logging Out...");
         setUser(null);
       }
       setLoading(false);

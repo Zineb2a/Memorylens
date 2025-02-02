@@ -9,16 +9,16 @@ function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // 🔥 Firebase Login
+  // Firebase Login
   const handleLogin = async () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       setUser(userCredential.user);
       console.log("✅ Logged in:", userCredential.user);
-      navigation.replace("Home"); // ✅ Redirect after login
+      navigation.replace("Home"); 
     } catch (error) {
       Alert.alert("Login Failed", error.message);
-      console.error("❌ Login Error:", error);
+      console.error("Login Error:", error);
     }
   };
 
@@ -31,7 +31,7 @@ function LoginScreen({ navigation }) {
       navigation.replace("Home"); // ✅ Redirect after register
     } catch (error) {
       Alert.alert("Registration Failed", error.message);
-      console.error("❌ Register Error:", error);
+      console.error("Register Error:", error);
     }
   };
 

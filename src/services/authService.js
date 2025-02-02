@@ -17,7 +17,7 @@ const signInWithAuth0 = async () => {
 
     if (response.type === "success") {
       const { id_token } = response.params;
-      console.log("✅ Auth0 ID Token Received:", id_token);
+      console.log(" Auth0 ID Token Received:", id_token);
 
       // 🔹 Use Firebase to Sign In with Auth0 Token
       const credential = GoogleAuthProvider.credential(id_token);
@@ -27,10 +27,10 @@ const signInWithAuth0 = async () => {
       setUser(firebaseUser.user);
       const firebaseToken = await firebaseUser.user.getIdToken(true);
       setToken(firebaseToken);
-      console.log("🔥 Firebase User Signed In and Token Set:", firebaseToken);
+      console.log(" Firebase User Signed In and Token Set:", firebaseToken);
     }
   } catch (error) {
-    console.error("❌ Error signing in:", error);
+    console.error(" Error signing in:", error);
   }
 };
 

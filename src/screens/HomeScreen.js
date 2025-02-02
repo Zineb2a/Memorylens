@@ -70,7 +70,7 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.helpButtonText}>Guide Me</Text>
         </TouchableOpacity>
 
-        {/* ✅ NEW BUTTON: Who is it? */}
+        {/*NEW BUTTON: Who is it? */}
         <TouchableOpacity style={[styles.button, styles.whoButton]} onPress={() => navigation.navigate("WhoIsItScreen")}>
           <Text style={styles.whoButtonText}>Who is it?</Text>
         </TouchableOpacity>
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
 
   /* ✅ NEW STYLING for "Who is it?" button */
   whoButton: {
-    backgroundColor: "#AC131C", // 🔥 Different color to distinguish
+    backgroundColor: "#AC131C", 
     width: 250,
     height: 110,
   },

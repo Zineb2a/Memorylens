@@ -10,7 +10,7 @@ export default function LandingScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔥 Login with Email and Password
+  // Login with Email and Password
   const handleLogin = async () => {
     setLoading(true);
     try {
