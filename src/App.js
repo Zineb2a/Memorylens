@@ -10,6 +10,7 @@ import MemoriesScreen from "./screens/MemoriesScreen";
 import { AuthProvider } from "./context/AuthContext"; // ✅ Ensure AuthProvider is correctly imported
 import AuthContext from "./context/AuthContext";
 import HelpScreen from "./screens/HelpScreen";
+import WhoIsItScreen from "./screens/WhoIsItScreen";
 
 const Stack = createStackNavigator();
 
@@ -28,6 +29,7 @@ function AppNavigator() {
           <Stack.Screen name="AddMemory" component={AddMemoryScreen} />
           <Stack.Screen name="MemoriesScreen" component={MemoriesScreen} />
           <Stack.Screen name="HelpScreen" component={HelpScreen} />
+          <Stack.Screen name="WhoIsItScreen" component={WhoIsItScreen} />
         </>
       ) : (
         <>
