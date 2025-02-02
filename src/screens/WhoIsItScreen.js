@@ -1,137 +1,152 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useState, useRef, useContext } from "react";
 import { 
-  View, Text, FlatList, Image, TouchableOpacity, ActivityIndicator, StyleSheet, Alert 
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image 
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { collection, getDocs, doc, deleteDoc } from "firebase/firestore";
-import { db } from "../services/firebaseConfig";
-import AuthContext from "../context/AuthContext";
+import { Ionicons } from "@expo/vector-icons"; // ✅ Import Ionicons for Back Button
+import { CameraView, useCameraPermissions } from "expo-camera";
+import * as FileSystem from "expo-file-system";
+import * as Speech from "expo-speech";
+import AuthContext from "../context/AuthContext"; // ✅ Import AuthContext
 
-function WhoIsItScreen({ navigation }) {
-  const { user } = useContext(AuthContext);
-  const [identities, setIdentities] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function RecognizePersonScreen({ navigation }) {
+  const cameraRef = useRef(null);
+  const { user } = useContext(AuthContext); // ✅ Get user from AuthContext
+  const [permission, requestPermission] = useCameraPermissions();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [recognizedPeople, setRecognizedPeople] = useState([]);
+  const [capturedImage, setCapturedImage] = useState(null);
 
-  useEffect(() => {
-    if (!user) {
-      console.log("🚨 No user detected!");
-      return;
-    }
-    fetchIdentities();
-  }, [user]);
+  // ✅ **Backend URL**
+  const NGROK_URL = "https://59c2-132-205-229-28.ngrok-free.app";
 
-  const fetchIdentities = async () => {
-    try {
-      const identitiesRef = collection(db, `users/${user.uid}/whoIsIt`);
-      const querySnapshot = await getDocs(identitiesRef);
-      const identityList = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          name: data.name || "Unknown",
-          image_urls: data.image_urls && data.image_urls.length > 0 ? data.image_urls : [null], 
-          description: data.description || "",
-          created_at: data.created_at ? new Date(data.created_at.seconds * 1000) : new Date(),
-        };
-      });
-      setIdentities(identityList);
-    } catch (error) {
-      console.error("❌ Error fetching identities:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteIdentity = async (identityId) => {
-    Alert.alert(
-      "Delete Identity",
-      "Are you sure you want to delete this identity?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          onPress: async () => {
-            try {
-              await deleteDoc(doc(db, `users/${user.uid}/whoIsIt/${identityId}`));
-              setIdentities((prevIdentities) => prevIdentities.filter(id => id.id !== identityId));
-              Alert.alert("✅ Success!", "Identity deleted.");
-            } catch (error) {
-              console.error("❌ Error deleting identity:", error);
-              Alert.alert("Error", "Failed to delete identity.");
-            }
-          },
-          style: "destructive",
-        },
-      ]
-    );
-  };
-
-  if (!user) {
+  if (!permission) return <View />;
+  if (!permission.granted) {
     return (
-      <View style={styles.centeredContainer}>
-        <Text style={styles.message}>Please log in to view identities.</Text>
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Auth")}>
-          <Text style={styles.text}>Go to Login</Text>
+      <View style={styles.permissionContainer}>
+        <Text style={styles.permissionText}>📸 Camera access is required</Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+          <Text style={styles.buttonText}>Grant Permission</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
+  const takePicture = async () => {
+    if (!user?.uid) {
+      setError("No user logged in. Please sign in.");
+      return;
+    }
+
+    if (cameraRef.current) {
+      setLoading(true);
+      setError(null);
+      setRecognizedPeople([]);
+
+      try {
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
+        setCapturedImage(photo.uri);
+        await sendToBackend(photo.uri, user.uid);
+      } catch (error) {
+        console.error("❌ Capture Error:", error);
+        setError("Failed to capture image.");
+        setLoading(false);
+      }
+    }
+  };
+
+  const sendToBackend = async (imageUri, userId) => {
+    try {
+      setLoading(true);
+      setError(null);
+  
+      if (!userId) {
+        console.error("User ID is undefined or null");
+        setError("User ID is missing.");
+        return;
+      }
+  
+      const fileInfo = await FileSystem.getInfoAsync(imageUri);
+      if (!fileInfo.exists) {
+        throw new Error("File does not exist at given URI.");
+      }
+  
+      let formData = new FormData();
+      formData.append("file", {
+        uri: imageUri,
+        name: "face.jpg",
+        type: "image/jpeg",
+      });
+  
+      // ✅ Correct API URL format
+      const apiUrl = `${NGROK_URL}/recognize-person/${userId}`;
+      console.log(`📡 Sending request to: ${apiUrl}`);
+  
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        body: formData,
+        headers: { Accept: "application/json" },
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log("✅ Backend response:", data);
+      setRecognizedPeople(data.people);
+      speakPeople(data.people);
+    } catch (err) {
+      console.error("❌ Upload error:", err);
+      setError("Failed to recognize person.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const speakPeople = (people) => {
+    if (people.length > 0) {
+      people.forEach((p) => {
+        Speech.speak(`I see ${p.name}`, { language: "en", pitch: 1, rate: 0.8 });
+      });
+    }
+  };
+
   return (
     <View style={styles.container}>
-      {/* ✅ Back Button */}
+      {/* 🔙 Back Button (Same as MemoriesScreen) */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="white" />
       </TouchableOpacity>
 
-      <Text style={styles.title}>Who Is It?</Text>
+      <CameraView style={styles.camera} facing="front" ref={cameraRef}>
+        <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
+          <Text style={styles.captureButtonText}>📷</Text>
+        </TouchableOpacity>
+      </CameraView>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#443469" />
-      ) : identities.length === 0 ? (
-        <Text style={styles.noIdentities}>No identities stored yet.</Text>
-      ) : (
-        <FlatList
-          data={identities}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.identityCard}>
-              {item.image_urls[0] ? (
-                <Image source={{ uri: item.image_urls[0] }} style={styles.image} />
-              ) : (
-                <View style={styles.noImagePlaceholder}>
-                  <Text style={styles.noImageText}>No Image</Text>
-                </View>
-              )}
-              <Text style={styles.identityName}>{item.name}</Text>
-              {item.description ? <Text style={styles.identityDescription}>{item.description}</Text> : null}
-              <Text style={styles.identityDate}>{item.created_at.toDateString()}</Text>
-              
-              {/* 🚀 DELETE BUTTON */}
-              <TouchableOpacity style={styles.deleteButton} onPress={() => deleteIdentity(item.id)}>
-                <Ionicons name="trash" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-          )}
-        />
+      {loading && <ActivityIndicator size="large" color="#FFFFFF" style={styles.loading} />}
+      {error && <Text style={styles.errorText}>{error}</Text>}
+      
+      {capturedImage && (
+        <Image source={{ uri: capturedImage }} style={styles.imagePreview} />
+      )}
+
+      {recognizedPeople.length > 0 && (
+        <View style={styles.resultContainer}>
+          {recognizedPeople.map((p, index) => (
+            <Text key={index} style={styles.resultText}>👤 {p.name}</Text>
+          ))}
+        </View>
       )}
     </View>
   );
 }
 
-// 🎨 **Styles**
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#EDEAFD",
-    padding: 60,
-    marginTop: -1,
-  },
-  centeredContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1, backgroundColor: "#000", justifyContent: "center" },
+
+  // ✅ Same Back Button as MemoriesScreen
   backButton: {
     position: "absolute",
     top: 50,
@@ -139,88 +154,32 @@ const styles = StyleSheet.create({
     backgroundColor: "#443469",
     padding: 8,
     borderRadius: 50,
-    marginTop: -1,
+    zIndex: 10, // ✅ Ensures it stays above everything
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 20,
-    color: "#4B0082",
-  },
-  noIdentities: {
-    textAlign: "center",
-    fontSize: 16,
-    color: "#333",
-    marginTop: 50,
-  },
-  identityCard: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-    position: "relative",
-  },
-  image: {
-    width: "100%",
-    height: 200,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  noImagePlaceholder: {
-    width: "100%",
-    height: 200,
-    backgroundColor: "#ccc",
-    borderRadius: 8,
+
+  camera: { flex: 1, width: "100%", justifyContent: "flex-end", alignItems: "center" },
+  captureButton: {
+    backgroundColor: "rgba(255,255,255,0.6)",
+    width: 80,
+    height: 80,
+    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 30,
   },
-  noImageText: {
-    color: "#555",
-    fontSize: 16,
+  captureButtonText: { fontSize: 30, color: "#000" },
+  loading: { position: "absolute", top: "50%", left: "50%", marginLeft: -15 },
+  errorText: { color: "red", textAlign: "center", marginTop: 10 },
+  imagePreview: {
+    width: 200, height: 300, borderRadius: 10, alignSelf: "center", marginTop: 10,
   },
-  identityName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+  resultContainer: {
+    position: "absolute", bottom: 100, backgroundColor: "rgba(255,255,255,0.8)",
+    padding: 15, borderRadius: 10, alignSelf: "center",
   },
-  identityDescription: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 5,
-    textAlign: "center",
-  },
-  identityDate: {
-    fontSize: 12,
-    color: "#888",
-    marginTop: 5,
-  },
-  deleteButton: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "#D32F2F",
-    padding: 6,
-    borderRadius: 50,
-  },
-  button: {
-    backgroundColor: "#443469",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginTop: 10,
-  },
-  text: {
-    color: "white",
-    fontWeight: "bold",
-  },
+  resultText: { fontSize: 22, fontWeight: "bold", textAlign: "center", color: "#000" },
+  permissionContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#000" },
+  permissionText: { fontSize: 18, color: "#FFF", marginBottom: 20 },
+  permissionButton: { backgroundColor: "#007bff", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8 },
+  buttonText: { color: "#FFF", fontSize: 16, fontWeight: "bold" },
 });
-
-export default WhoIsItScreen;
