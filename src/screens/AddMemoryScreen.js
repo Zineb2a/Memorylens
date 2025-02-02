@@ -1,154 +1,152 @@
-import React, { useContext, useState, useRef } from "react";
-import { View, Text, Button, TouchableOpacity, Alert, Image, StyleSheet } from "react-native";
+import React, { useContext, useState, useRef, useEffect } from "react";
+import { 
+  View, Text, TextInput, TouchableOpacity, Alert, Image, StyleSheet, ActivityIndicator 
+} from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImageManipulator from "expo-image-manipulator";
-import { storage, db } from "../services/firebaseConfig";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { collection, addDoc } from "firebase/firestore";
+import { doc, setDoc, collection } from "firebase/firestore";
+import { auth, db } from "../services/firebaseConfig";
 import AuthContext from "../context/AuthContext";
+import { onAuthStateChanged } from "firebase/auth";
 
-import * as FileSystem from 'expo-file-system';
-
-
-export default function AddMemoryScreen({ navigation }) {
-  const { user } = useContext(AuthContext);
+function AddMemoryScreen({ navigation }) {
+  const { user, setUser, loading } = useContext(AuthContext);
   const [facing, setFacing] = useState("back");
   const [capturing, setCapturing] = useState(false);
   const [capturedFrames, setCapturedFrames] = useState([]);
+  const [label, setLabel] = useState("");
+  const [note, setNote] = useState("");
+  const [uploading, setUploading] = useState(false);
   const cameraRef = useRef(null);
   const [permission, requestPermission] = useCameraPermissions();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) setUser(firebaseUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   if (!permission) return <View />;
   if (!permission.granted) {
     return (
       <View style={styles.container}>
         <Text style={styles.message}>We need your permission to access the camera</Text>
-        <Button onPress={requestPermission} title="Grant Permission" />
+        <TouchableOpacity style={styles.button} onPress={requestPermission}>
+          <Text style={styles.text}>Grant Permission</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
-  function toggleCameraFacing() {
-    setFacing((current) => (current === "back" ? "front" : "back"));
-  }
-
-  const startCapturing = async () => {
+  const takePictures = async () => {
     if (!cameraRef.current) return;
     setCapturing(true);
     let frames = [];
-
     for (let i = 0; i < 5; i++) {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.5, base64: false });
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
       frames.push(photo.uri);
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
-
-    setCapturedFrames(frames.slice(0, 3));
+    setCapturedFrames(frames);
     setCapturing(false);
+    askForLabel();
   };
 
-  const compressImage = async (uri) => {
-    const compressedImage = await ImageManipulator.manipulateAsync(uri, [{ resize: { width: 800 } }], {
-      compress: 0.7,
-      format: ImageManipulator.SaveFormat.JPEG,
-    });
-    return compressedImage.uri;
+  const askForLabel = () => {
+    Alert.prompt(
+      "Label Memory",
+      "Enter a label for this memory:",
+      (inputLabel) => {
+        if (inputLabel) {
+          setLabel(inputLabel);
+          askForNote();
+        }
+      }
+    );
   };
 
-  // const uriToBlob = async (uri) => {
-  //   return new Promise((resolve, reject) => {
-  //     const xhr = new XMLHttpRequest();
-  //     xhr.onload = function () {
-  //       resolve(xhr.response);
-  //     };
-  //     xhr.onerror = function () {
-  //       reject(new Error("Failed to convert URI to Blob"));
-  //     };
-  //     xhr.responseType = "blob";
-  //     xhr.open("GET", uri, true);
-  //     xhr.send(null);
-  //   });
-  // };
+  const askForNote = () => {
+    Alert.prompt(
+      "Add a Note (Optional)",
+      "Would you like to add a note to this memory?",
+      (inputNote) => {
+        if (inputNote) setNote(inputNote);
+      },
+      "plain-text",
+      ""
+    );
+  };
 
+  const uploadToCloudinary = async (imageUri) => {
+    try {
+      const data = new FormData();
+      data.append("file", { uri: imageUri, type: "image/jpeg", name: "memory.jpg" });
+      data.append("upload_preset", "memory"); 
+      const response = await fetch("https://api.cloudinary.com/v1_1/dlotlvg9e/image/upload", {
+        method: "POST",
+        body: data,
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const result = await response.json();
+      return result.secure_url;
+    } catch (error) {
+      console.error("Cloudinary Upload Error:", error);
+      return null;
+    }
+  };
 
-const uriToBlob = async (uri) => {
-  try {
-    const file = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-    const blob = new Blob([file], { type: "image/jpeg" });
-    return blob;
-  } catch (error) {
-    console.error("❌ Failed to convert URI to Blob:", error);
-    throw error;
-  }
-};
-
-
-  const uploadImages = async () => {
-    if (!user || capturedFrames.length === 0) {
-      Alert.alert("Error", "No frames captured.");
+  const saveMemoryToFirestore = async (label, imageUrls, note) => {
+    if (!user || !label.trim() || imageUrls.length === 0) {
+      Alert.alert("Error", "Label and images are required.");
       return;
     }
-
-    let imageUrls = [];
-    for (let frame of capturedFrames) {
-      try {
-        const compressedUri = await compressImage(frame);
-        const blob = await uriToBlob(compressedUri);
-
-        const fileName = `memories/${user.uid}/${Date.now()}.jpg`;
-        const fileRef = ref(storage, fileName);
-        await uploadBytes(fileRef, blob);
-        const imageUrl = await getDownloadURL(fileRef);
-        imageUrls.push(imageUrl);
-      } catch (error) {
-        Alert.alert("Upload Error", `Failed to upload image: ${error.message}`);
-        return;
-      }
-    }
-
     try {
-      await addDoc(collection(db, "users", user.uid, "memories"), {
-        label: "New Object",
-        image_urls: imageUrls,
-        created_at: new Date(),
-      });
-
-      Alert.alert("Success!", "Memory saved.");
+      const memoryDocRef = doc(collection(db, `users/${user.uid}/memories`));
+      await setDoc(memoryDocRef, { label, image_urls: imageUrls, note, created_at: new Date() });
+      Alert.alert("✅ Success!", "Memory saved.");
       navigation.navigate("Home");
     } catch (error) {
-      Alert.alert("Database Error", "Failed to save memory.");
+      console.error("Firestore Error:", error);
+      Alert.alert("Error", "Failed to save memory.");
     }
+  };
+
+  const uploadImagesAndSave = async () => {
+    if (!capturedFrames.length || !label.trim()) {
+      Alert.alert("Error", "Please provide a label and capture at least one image.");
+      return;
+    }
+    setUploading(true);
+    let imageUrls = await Promise.all(capturedFrames.map(uploadToCloudinary));
+    imageUrls = imageUrls.filter(Boolean);
+    setUploading(false);
+    if (imageUrls.length > 0) saveMemoryToFirestore(label, imageUrls, note);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Capture Object</Text>
+      <Text style={styles.title}>Capture & Label Memory</Text>
       <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-            <Text style={styles.text}>Flip Camera</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={startCapturing} disabled={capturing}>
-            <Text style={styles.text}>Start Capturing</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.button} onPress={takePictures}>
+          <Text style={styles.text}>Capture</Text>
+        </TouchableOpacity>
       </CameraView>
-
-      {capturedFrames.length > 0 && <Button title="Save Memory" onPress={uploadImages} />}
-      {capturedFrames.map((uri, index) => (
-        <Image key={index} source={{ uri }} style={styles.preview} />
-      ))}
+      {uploading ? <ActivityIndicator size="large" color="#0000ff" /> : (
+        <TouchableOpacity style={styles.button} onPress={uploadImagesAndSave}>
+          <Text style={styles.text}>Save Memory</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20 },
-  message: { textAlign: "center", paddingBottom: 10 },
-  title: { textAlign: "center", fontSize: 18, fontWeight: "bold", marginBottom: 10 },
-  camera: { flex: 1 },
-  buttonContainer: { flex: 1, flexDirection: "row", backgroundColor: "transparent", margin: 64 },
-  button: { flex: 1, alignSelf: "flex-end", alignItems: "center" },
-  text: { fontSize: 24, fontWeight: "bold", color: "white" },
-  preview: { width: 100, height: 100, margin: 5 },
+  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#F8F8F8" },
+  title: { textAlign: "center", fontSize: 22, fontWeight: "bold", marginBottom: 10, color: "#333" },
+  camera: { flex: 1, width: "100%", aspectRatio: 3 / 4, borderRadius: 10, overflow: "hidden" },
+  button: { backgroundColor: "#443469", padding: 15, borderRadius: 8, alignItems: "center", marginTop: 10 },
+  text: { color: "white", fontWeight: "bold" },
 });
+
+export default AddMemoryScreen;

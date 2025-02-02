@@ -1,31 +1,23 @@
 import React, { createContext, useEffect, useState } from "react";
-import { auth, db } from "../services/firebaseConfig";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { auth } from "../services/firebaseConfig";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    console.log("🛠 Checking Firebase login state...");
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        console.log("🔥 Firebase Auth User:", firebaseUser);
-        const userRef = doc(db, "users", firebaseUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          setUser(userSnap.data());
-        } else {
-          console.log("User not found in Firestore, using Firebase Auth user.");
-          setUser({ uid: firebaseUser.uid, email: firebaseUser.email });
-        }
+        console.log("🔥 Firebase User Logged In:", firebaseUser);
+        setUser(firebaseUser);
       } else {
-        console.log("🚀 No authenticated user.");
+        console.error("🚨 No Firebase User Found! Logging Out...");
         setUser(null);
-        setToken(null);
       }
       setLoading(false);
     });
@@ -33,8 +25,19 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
+  // 🔥 Logout Function
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      console.log("✅ User Logged Out!");
+    } catch (error) {
+      console.error("❌ Logout Failed:", error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, setUser, token, setToken, loading }}>
+    <AuthContext.Provider value={{ user, setUser, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useContext } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // ✅ Import Arrow Icon
-import { db } from "../services/firebaseConfig";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { signOut } from "firebase/auth"; 
+import { auth, db } from "../services/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import AuthContext from "../context/AuthContext";
 
@@ -11,46 +10,53 @@ export default function HomeScreen({ navigation }) {
   const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const handleAddMemory = () => {
+    console.log("📝 Navigating to Add Memory. Current User:", user);
     if (!user) {
-      console.log("User is not authenticated.");
-      return;
+      console.error("🚨 User is NULL before navigating! Something is wrong.");
     }
-    fetchMemories();
+    navigation.navigate("AddMemory");
+  };
+  
+
+  useEffect(() => {
+    if (user) fetchMemories();
   }, [user]);
 
   const fetchMemories = async () => {
+    if (!user) return; 
+
     try {
-      if (!user) return;
-      const memoriesRef = collection(db, "users", user.sub, "memories");
+      const memoriesRef = collection(db, "users", user.uid, "memories"); 
       const querySnapshot = await getDocs(memoriesRef);
       setMemories(querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching memories:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ✅ LOGOUT FUNCTION (Using the SAME LOGIC as other buttons)
-  const handleLogout = () => {
-    setUser(null);
-    setToken(null);
-    navigation.navigate("Landing"); // ✅ MATCHING BUTTON NAVIGATION
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // ✅ Fully logs out
+      setUser(null);
+      setToken(null);
+      navigation.replace("Landing"); // ✅ Prevent back button returning to logged-in state
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   return (
     <View style={styles.container}>
-   
-
-      {/* Background Circles */}
       <View style={styles.circle} />
       <View style={styles.smallCircle} />
-      {/* 🔥 Logout Button (TOP LEFT) */}
+
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-      <Text style={styles.logoutText}>Logout</Text>
+        <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
 
-      {/* Buttons */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("AddMemory")}>
           <Text style={styles.buttonText}>Add Memory</Text>
@@ -78,8 +84,8 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     position: "absolute",
-    top: 50, // ✅ Adjust top position
-    left: 20, // ✅ Move to the left
+    top: 50,
+    left: 20,
     backgroundColor: "#B399D4",
     padding: 10,
     borderRadius: 50,
@@ -130,7 +136,7 @@ const styles = StyleSheet.create({
   },
   helpButtonText: {
     color: "#FFFFFF",
-    fontSize: 25, // 🔥 Bigger text ONLY for "Guide Me"
+    fontSize: 25,
     fontWeight: "bold",
   },
   buttonText: {
