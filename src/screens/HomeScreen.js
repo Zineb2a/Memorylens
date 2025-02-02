@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // ✅ Import Arrow Icon
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { db } from "../services/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import AuthContext from "../context/AuthContext";
@@ -8,7 +7,6 @@ import AuthContext from "../context/AuthContext";
 export default function HomeScreen({ navigation }) {
   const { user, setUser, setToken } = useContext(AuthContext);
   const [memories, setMemories] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
@@ -24,29 +22,25 @@ export default function HomeScreen({ navigation }) {
       const memoriesRef = collection(db, "users", user.sub, "memories");
       const querySnapshot = await getDocs(memoriesRef);
       setMemories(querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching memories:", error);
     }
   };
 
-  // ✅ LOGOUT FUNCTION (Using the SAME LOGIC as other buttons)
   const handleLogout = () => {
     setUser(null);
     setToken(null);
-    navigation.navigate("Landing"); // ✅ MATCHING BUTTON NAVIGATION
+    navigation.navigate("Landing");
   };
 
   return (
     <View style={styles.container}>
-   
-
-      {/* Background Circles */}
       <View style={styles.circle} />
       <View style={styles.smallCircle} />
-      {/* 🔥 Logout Button (TOP LEFT) */}
+
+      {/* 🔥 Logout Button */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-      <Text style={styles.logoutText}>Logout</Text>
+        <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
 
       {/* Buttons */}
@@ -57,6 +51,10 @@ export default function HomeScreen({ navigation }) {
 
         <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("MemoriesScreen")}>
           <Text style={styles.buttonText}>Saved Memories</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("ChatbotScreen")}>  
+          <Text style={styles.buttonText}>Chat with AI</Text>  {/* ✅ New Button to Chatbot */}
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.button, styles.helpButton]} onPress={() => navigation.navigate("HelpScreen")}>
@@ -77,8 +75,8 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     position: "absolute",
-    top: 50, // ✅ Adjust top position
-    left: 20, // ✅ Move to the left
+    top: 50,
+    left: 20,
     backgroundColor: "#B399D4",
     padding: 10,
     borderRadius: 50,
@@ -129,7 +127,7 @@ const styles = StyleSheet.create({
   },
   helpButtonText: {
     color: "#FFFFFF",
-    fontSize: 25, // 🔥 Bigger text ONLY for "Guide Me"
+    fontSize: 25,
     fontWeight: "bold",
   },
   buttonText: {

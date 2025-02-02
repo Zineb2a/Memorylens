@@ -1,13 +1,15 @@
 import React, { useContext } from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
-import LandingScreen from "./screens/LandingScreen";
-import HomeScreen from "./screens/HomeScreen";
-import AuthScreen from "./screens/AuthScreen";
-import AddMemoryScreen from "./screens/AddMemoryScreen";
-import LoadingScreen from "./screens/LoadingScreen";
-import AuthContext, { AuthProvider } from "./context/AuthContext";
-import MemoriesScreen from "./screens/MemoriesScreen";
+import LandingScreen from "./src/screens/LandingScreen";
+import HomeScreen from "./src/screens/HomeScreen";
+import AuthScreen from "./src/screens/AuthScreen";
+import AddMemoryScreen from "./src/screens/AddMemoryScreen";
+import LoadingScreen from "./src/screens/LoadingScreen";
+import MemoriesScreen from "./src/screens/MemoriesScreen";
+import ChatbotScreen from "./src/screens/ChatbotScreen";  // ✅ Import ChatbotScreen
+import AuthContext, { AuthProvider } from "./src/context/AuthContext";  // ✅ Corrected Import
+
 const Stack = createStackNavigator();
 
 function AppNavigator() {
@@ -23,7 +25,8 @@ function AppNavigator() {
         <>
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="AddMemory" component={AddMemoryScreen} />
-          <Stack.Screen name= "MemoriesScreen" component={MemoriesScreen} />
+          <Stack.Screen name="MemoriesScreen" component={MemoriesScreen} />
+          <Stack.Screen name="ChatbotScreen" component={ChatbotScreen} />  {/* ✅ Chatbot Screen Navigation */}
         </>
       ) : (
         <>
