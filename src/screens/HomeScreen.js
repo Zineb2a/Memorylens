@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { signOut } from "firebase/auth"; 
+import { signOut } from "firebase/auth";
 import { auth, db } from "../services/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import AuthContext from "../context/AuthContext";
@@ -17,17 +17,17 @@ export default function HomeScreen({ navigation }) {
     }
     navigation.navigate("AddMemory");
   };
-  
+ 
 
   useEffect(() => {
     if (user) fetchMemories();
   }, [user]);
 
   const fetchMemories = async () => {
-    if (!user) return; 
+    if (!user) return;
 
     try {
-      const memoriesRef = collection(db, "users", user.uid, "memories"); 
+      const memoriesRef = collection(db, "users", user.uid, "memories");
       const querySnapshot = await getDocs(memoriesRef);
       setMemories(querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     } catch (error) {
@@ -39,10 +39,10 @@ export default function HomeScreen({ navigation }) {
 
   const handleLogout = async () => {
     try {
-      await signOut(auth); // ✅ Fully logs out
+      await signOut(auth);
       setUser(null);
       setToken(null);
-      navigation.replace("Landing"); // ✅ Prevent back button returning to logged-in state
+      navigation.replace("Landing");
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -69,6 +69,12 @@ export default function HomeScreen({ navigation }) {
         <TouchableOpacity style={[styles.button, styles.helpButton]} onPress={() => navigation.navigate("HelpScreen")}>
           <Text style={styles.helpButtonText}>Guide Me</Text>
         </TouchableOpacity>
+
+        {/* ✅ NEW BUTTON: Who is it? */}
+        <TouchableOpacity style={[styles.button, styles.whoButton]} onPress={() => navigation.navigate("WhoIsItScreen")}>
+          <Text style={styles.whoButtonText}>Who is it?</Text>
+        </TouchableOpacity>
+
       </View>
     </View>
   );
@@ -130,7 +136,7 @@ const styles = StyleSheet.create({
   helpButton: {
     backgroundColor: "#AC131C",
     width: 250,
-    height: 200,
+    height: 110,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -144,4 +150,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
+
+  /* ✅ NEW STYLING for "Who is it?" button */
+  whoButton: {
+    backgroundColor: "#AC131C", // 🔥 Different color to distinguish
+    width: 250,
+    height: 110,
+  },
+  whoButtonText: {
+    color: "#FFFFFF",
+    fontSize: 25,
+    fontWeight: "bold",
+ 
+  }
 });
+
+

@@ -123,8 +123,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#EDEAFD",
-    padding: 20,
-    marginTop: 50,
+    padding: 60,
+    marginTop: -1,
   },
   centeredContainer: {
     flex: 1,
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#443469",
     padding: 8,
     borderRadius: 50,
-    marginTop: -35,
+    marginTop: -1,
   },
   title: {
     fontSize: 22,
