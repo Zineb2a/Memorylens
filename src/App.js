@@ -9,6 +9,7 @@ import LoadingScreen from "./screens/LoadingScreen";
 import MemoriesScreen from "./screens/MemoriesScreen";
 import { AuthProvider } from "./context/AuthContext"; // ✅ Ensure AuthProvider is correctly imported
 import AuthContext from "./context/AuthContext";
+import { startStreaming } from "./services/streaming";
 
 const Stack = createStackNavigator();
 
@@ -38,6 +39,7 @@ function AppNavigator() {
 }
 
 export default function App() {
+  startStreaming();
   return (
     <AuthProvider>
       <NavigationContainer>
