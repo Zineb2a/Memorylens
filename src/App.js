@@ -1,3 +1,4 @@
+
 import React, { useContext } from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
@@ -7,7 +8,7 @@ import AuthScreen from "./screens/AuthScreen";
 import AddMemoryScreen from "./screens/AddMemoryScreen";
 import LoadingScreen from "./screens/LoadingScreen";
 import AuthContext, { AuthProvider } from "./context/AuthContext";
-
+import MemoriesScreen from "./screens/MemoriesScreen";
 const Stack = createStackNavigator();
 
 function AppNavigator() {
@@ -23,6 +24,7 @@ function AppNavigator() {
         <>
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="AddMemory" component={AddMemoryScreen} />
+          <Stack.Screen name= "MemoriesScreen" component={MemoriesScreen} />
         </>
       ) : (
         <>
