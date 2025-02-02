@@ -1,0 +1,1 @@
+["^ ","~:members",["^ ","getName",["~#set",[["^ ","~:flags",["^2",["~:method"]]]]],"initialize",["^2",[["^ ","^3",["^2",["^4"]]]]],"invalidate",["^2",[["^ ","^3",["^2",["^4"]]]]],"canOverrideExistingModule",["^2",[["^ ","^3",["^2",["^4","~:default"]]]]],"onCatalystInstanceDestroy",["^2",[["^ ","^3",["^2",["^4","^8"]]]]]]]

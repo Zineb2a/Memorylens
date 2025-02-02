@@ -1,0 +1,1 @@
+["^ ","~:members",["^ ","ReactTextInputFocusEvent",["~#set",[["^ ","~:flags",["^2",["~:method","~:public"]]]]],"getEventName",["^2",[["^ ","^3",["^2",["^4","^5"]]]]],"getEventData",["^2",[["^ ","^3",["^2",["^4","~:protected"]]]]],"canCoalesce",["^2",[["^ ","^3",["^2",["^4","^5"]]]]]]]

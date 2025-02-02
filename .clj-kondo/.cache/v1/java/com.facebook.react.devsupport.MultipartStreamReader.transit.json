@@ -1,0 +1,1 @@
+["^ ","~:members",["^ ","MultipartStreamReader",["~#set",[["^ ","~:flags",["^2",["~:method","~:public"]]]]],"onChunkComplete",["^2",[["^ ","^3",["^2",["^4"]]]]],"onChunkProgress",["^2",[["^ ","^3",["^2",["^4"]]]]],"readAllParts",["^2",[["^ ","^3",["^2",["^4","^5"]]]]]]]
